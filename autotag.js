@@ -17,7 +17,15 @@
 
         // Look for body field text.
         // @todo support additional fields.
-        var search_text = $('#edit-body-und-0-value').text();
+        var search_text = '';
+
+        // Look for Wysiwyg
+        if (Drupal.wysiwyg.instances['edit-body-und-0-value'] != undefined) {
+          search_text = Drupal.wysiwyg.instances['edit-body-und-0-value'].getContent();
+        }
+        else {
+          search_text = $('#edit-body-und-0-value').text();
+        }
 
         // Fetch terms for this field
         var id = $(this).attr('id').replace('-autotag', '');
