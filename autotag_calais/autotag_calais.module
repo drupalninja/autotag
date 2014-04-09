@@ -1,0 +1,13 @@
+<?php
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_autotag_fetch_terms().
+ */
+function autotag_calais_autotag_fetch_terms($field_instance, $search_text) {
+  $terms = array('Foo', 'Bar');
+
+  return $terms;
+}

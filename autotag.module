@@ -1,0 +1,174 @@
+<?php
+/**
+ * @file
+ * Autotag module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function autotag_menu() {
+  $items['autotag'] = array(
+    'page callback' => 'autotag_fetch_terms',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(1, 2, 3),
+  );
+
+  return $items;
+}
+
+/**
+ * Autotag fetch terms
+ *
+ * This will look for terms in the search text and return that list via ajax
+ * to the autotag enabled field when the 'Autotag' button is pressed.
+ *
+ * @param string $entity_type
+ *   Entity type.
+ * @param string $field_name
+ *   Name of autotag enabled field.
+ * @param string $bundle
+ *   Entity bundle.
+ *
+ * @return string
+ *   Plain text, command delimited list of term names.
+ */
+function autotag_fetch_terms($entity_type, $field_name, $bundle) {
+  $autotag_field = field_info_instance($entity_type, $field_name, $bundle);
+
+  $search_text = isset($_POST['search_text']) ? $_POST['search_text'] : NULL;
+  $current_terms = isset($_POST['current_terms']) ? explode(', ', $_POST['current_terms']) : NULL;
+
+  $terms = array();
+
+  if ($search_text) {
+    // Call modules that implement hook_autotag_fetch_terms to retrieve terms
+    $terms = module_invoke_all('autotag_fetch_terms', $autotag_field, $search_text);
+  }
+
+  // If we have existing terms we will merge with the terms we found.
+  if (is_array($current_terms)) {
+    $terms = array_merge($current_terms, $terms);
+  }
+
+  // Print comma delimited list of unique terms
+  print join(', ', array_unique($terms));
+  drupal_exit();
+}
+
+/**
+ * Implements hook_autotag_fetch_terms().
+ */
+function autotag_autotag_fetch_terms($field_instance, $search_text) {
+  $terms = array();
+
+  // Look through vocabulary terms and try to find a match in the search text field.
+  if (isset($field_instance['widget']['settings']['autotag']['vocabularies'])) {
+    $vocabularies = $field_instance['widget']['settings']['autotag']['vocabularies'];
+
+    foreach ($vocabularies as $vid => $enabled) {
+      if ($enabled) {
+        foreach (taxonomy_get_tree($vid) as $term) {
+          if (strstr($search_text, $term->name)) {
+            $terms[] = $term->name;
+          }
+        }
+      }
+    }
+  }
+
+  return $terms;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function autotag_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  $instance = $form['#instance'];
+
+  // Add the auto-tag settings form to term reference widgets (autocomplete only).
+  if ($instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
+    if (!empty($form['instance']['widget']['settings'])) {
+      $form['instance']['widget']['settings'] += autotag_field_form($instance, $form_state);
+    }
+    else {
+      $form['instance']['widget']['settings'] = autotag_field_form($instance, $form_state);
+    }
+  }
+}
+
+/**
+ * Autotag field form.
+ *
+ * @param object $instance
+ * @param array $form_state
+ *
+ * Configuration form for editing Autotag settings for a term reference widget.
+ *
+ * @return array
+ *   returns Autotag configuration form.
+ */
+function autotag_field_form($instance, &$form_state) {
+  $settings = $instance['widget']['settings']['autotag'];
+
+  $form = array();
+
+  $form['autotag'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Autotag Settings'),
+    '#collapsible' => TRUE,
+    '#weight' => 20,
+  );
+
+  $form['autotag']['enable_autotag'] = array(
+    '#title' => 'Enable auto-tagging for this field.',
+    '#type' => 'checkbox',
+    '#default_value' => isset($settings['enable_autotag']) ? $settings['enable_autotag'] : '',
+  );
+
+  $vocabularies = taxonomy_get_vocabularies();
+
+  $options = array();
+
+  foreach ($vocabularies as $vid => $vocab) {
+    $options[$vid] = $vocab->name;
+  }
+
+  // Out of the box, autotag supports looking for terms in existing vocabularies.
+  $form['autotag']['vocabularies'] = array(
+    '#title' => 'Autotag Vocabularies',
+    '#description' => 'Search for term names in the following vocabularies.',
+    '#type' => 'checkboxes',
+    '#options' => $options,
+    '#default_value' => isset($settings['vocabularies']) ? $settings['vocabularies'] : '',
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_widget_form_alter().
+ */
+function autotag_field_widget_form_alter(&$element, &$form_state, $context) {
+  if ($context['field']['type'] == 'taxonomy_term_reference') {
+    // If Auto-tag enabled, we are going to add some JavaScript to add an
+    // Autotag sync button.
+    if (isset($context['instance']['widget']['settings']['autotag']['enable_autotag'])
+      AND $context['instance']['widget']['settings']['autotag']['enable_autotag'] == 1) {
+
+      // We need to pass the field settings via ajax to a handler that will
+      // fetch terms for the search text passed in.
+      $settings = array(
+        'entity_type' => $element['#entity_type'],
+        'field_name' => $context['field']['field_name'],
+        'bundle' => $element['#bundle'],
+      );
+
+      drupal_add_js(array('autotag' => $settings), 'setting');
+
+      $element['#attributes']['class'][] = 'autotag';
+      $element['#attached']['js'][] = drupal_get_path('module', 'autotag') .'/autotag.js';
+    }
+  }
+}

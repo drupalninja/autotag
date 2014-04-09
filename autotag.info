@@ -1,0 +1,6 @@
+name = "Autotag"
+description = "Auto-scans content for relevant tags from vocabularies and provides an API for integration with 3rd party taxonomy."
+core = "7.x"
+package = "Taxonomy"
+dependencies[] = "taxonomy"
+project = "autotag"
