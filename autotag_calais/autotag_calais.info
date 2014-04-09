@@ -1,6 +1,7 @@
 name = "Autotag Calais"
-description = "Integrates OpenCalais with the autotag module."
+description = "Integrates OpenCalais with the autotag module. Requires the OpenCalais API module."
 core = "7.x"
 package = "Taxonomy"
 dependencies[] = "autotag"
+dependencies[] = "opencalais_api"
 project = "autotag_calais"

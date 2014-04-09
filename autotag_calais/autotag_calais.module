@@ -7,7 +7,66 @@
  * Implements hook_autotag_fetch_terms().
  */
 function autotag_calais_autotag_fetch_terms($field_instance, $search_text) {
-  $terms = array('Foo', 'Bar');
+  if (isset($field_instance['widget']['settings']['autotag']['enable_calais']) AND
+    $field_instance['widget']['settings']['autotag']['enable_calais'] == 1) {
 
-  return $terms;
+    $terms = array();
+
+    $results = module_invoke('opencalais_api', 'analyze', $search_text);
+
+    foreach ($results as $calias_object) {
+      If ($calias_object->terms) {
+        foreach ($calias_object->terms as $term_object) {
+          $terms[] = $term_object->name;
+        }
+      }
+    }
+
+    return $terms;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function autotag_calais_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  $instance = $form['#instance'];
+
+  // Add the auto-tag OpenCalais settings form to term reference widgets (autocomplete only).
+  if ($instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
+    if (!empty($form['instance']['widget']['settings']['autotag'])) {
+      $form['instance']['widget']['settings']['autotag'] += autotag_calais_field_form($instance, $form_state);
+    }
+  }
+}
+
+/**
+ * Autotag field form.
+ *
+ * @param object $instance
+ * @param array $form_state
+ *
+ * Configuration form for enabling OpenCalias integration with the Autotag module.
+ *
+ * @return array
+ *   returns Autotag configuration form.
+ */
+function autotag_calais_field_form($instance, &$form_state) {
+  $settings = $instance['widget']['settings']['autotag'];
+
+  $form = array();
+
+  $form['enable_calais'] = array(
+    '#title' => 'Enable OpenCalias auto-tagging.',
+    '#description' => 'Add OpenCalais auto-tagging integration to this field.',
+    '#type' => 'checkbox',
+    '#default_value' => isset($settings['enable_calais']) ? $settings['enable_calais'] : '',
+  );
+
+  if (!is_opencalais_api_key_set()) {
+    $form['enable_calais']['#attributes'] = array('disabled' => 'disabled');
+    $form['enable_calais']['#description'] = 'OpenCalais must be configured to use with Autotag.';
+  }
+
+  return $form;
 }

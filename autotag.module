@@ -37,7 +37,7 @@ function autotag_menu() {
 function autotag_fetch_terms($entity_type, $field_name, $bundle) {
   $autotag_field = field_info_instance($entity_type, $field_name, $bundle);
 
-  $search_text = isset($_POST['search_text']) ? $_POST['search_text'] : NULL;
+  $search_text = isset($_POST['search_text']) ? $_POST['search_text'] : '';
   $current_terms = isset($_POST['current_terms']) ? explode(', ', $_POST['current_terms']) : NULL;
 
   $terms = array();
