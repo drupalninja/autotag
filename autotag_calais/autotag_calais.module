@@ -52,7 +52,11 @@ function autotag_calais_form_field_ui_field_edit_form_alter(&$form, &$form_state
  *   returns Autotag configuration form.
  */
 function autotag_calais_field_form($instance, &$form_state) {
-  $settings = $instance['widget']['settings']['autotag'];
+  $settings = array();
+
+  if (isset($instance['widget']['settings']['autotag'])) {
+    $settings = $instance['widget']['settings']['autotag'];
+  }
 
   $form = array();
 
@@ -60,12 +64,12 @@ function autotag_calais_field_form($instance, &$form_state) {
     '#title' => 'Enable OpenCalias auto-tagging.',
     '#description' => 'Add OpenCalais auto-tagging integration to this field.',
     '#type' => 'checkbox',
-    '#default_value' => isset($settings['enable_calais']) ? $settings['enable_calais'] : '',
+    '#default_value' => isset($settings['enable_calais']) ? $settings['enable_calais'] : NULL,
   );
 
-  if (!is_opencalais_api_key_set()) {
+  if (function_exists('is_opencalais_api_key_set') AND !is_opencalais_api_key_set()) {
     $form['enable_calais']['#attributes'] = array('disabled' => 'disabled');
-    $form['enable_calais']['#description'] = 'OpenCalais must be configured to use with Autotag.';
+    $form['enable_calais']['#description'] = '<strong>OpenCalais must be configured to use with Autotag.</strong>';
   }
 
   return $form;

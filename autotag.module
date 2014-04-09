@@ -110,7 +110,11 @@ function autotag_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
  *   returns Autotag configuration form.
  */
 function autotag_field_form($instance, &$form_state) {
-  $settings = $instance['widget']['settings']['autotag'];
+  $settings = array();
+
+  if (isset($instance['widget']['settings']['autotag'])) {
+    $settings = $instance['widget']['settings']['autotag'];
+  }
 
   $form = array();
 
@@ -141,7 +145,7 @@ function autotag_field_form($instance, &$form_state) {
     '#description' => 'Search for term names in the following vocabularies.',
     '#type' => 'checkboxes',
     '#options' => $options,
-    '#default_value' => isset($settings['vocabularies']) ? $settings['vocabularies'] : '',
+    '#default_value' => isset($settings['vocabularies']) ? $settings['vocabularies'] : array(),
   );
 
   return $form;
