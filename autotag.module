@@ -113,7 +113,8 @@ function autotag_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
   $instance = $form['#instance'];
 
   // Add the auto-tag settings form to term reference widgets (autocomplete only).
-  if ($instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
+  // Currently only the 'node' entity type is supported.
+  if ($instance['entity_type'] == 'node' AND $instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
     if (!empty($form['instance']['widget']['settings'])) {
       $form['instance']['widget']['settings'] += autotag_field_form($instance, $form_state);
     }
