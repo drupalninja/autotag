@@ -38,8 +38,8 @@ function autotag_fetch_terms($entity_type, $field_name, $bundle) {
   // Call helper function
   $terms = _autotag_fetch_terms($entity_type, $field_name, $bundle, $search_text, $current_terms);
 
-  // Print comma delimited list of unique terms
-  print join(', ', array_unique($terms));
+  // Print comma delimited list of terms
+  print join(', ', $terms);
   drupal_exit();
 }
 
@@ -79,7 +79,7 @@ function _autotag_fetch_terms($entity_type, $field_name, $bundle, $search_text, 
   }
 
   // Return array of terms
-  return $terms;
+  return array_filter(array_unique($terms));
 }
 
 /**
