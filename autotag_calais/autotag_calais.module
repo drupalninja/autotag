@@ -11,13 +11,33 @@ function autotag_calais_autotag_fetch_terms($field_instance, $search_text) {
     $field_instance['widget']['settings']['autotag']['enable_calais'] == 1) {
 
     $terms = array();
+    $enabled_categories = array();
+    $relevancy_min = 0;
+
+    // Add OpenCalais Metatype filtering if configured.
+    if (isset($field_instance['widget']['settings']['autotag']['calais_categories'])) {
+      $enabled_categories = $field_instance['widget']['settings']['autotag']['calais_categories'];
+    }
+
+    if (isset($field_instance['widget']['settings']['autotag']['calais_relevancy'])) {
+      $relevancy_min = (float) $field_instance['widget']['settings']['autotag']['calais_relevancy'];
+    }
 
     $results = module_invoke('opencalais_api', 'analyze', $search_text);
 
-    foreach ($results as $calias_object) {
-      If ($calias_object->terms) {
+    foreach ($results as $category => $calias_object) {
+      // Check to make sure we want terms from this category.
+      // Skip if this term is not in an
+      if (count($enabled_categories) AND !isset($enabled_categories[$category])) {
+        continue;
+      }
+
+      if ($calias_object->terms) {
         foreach ($calias_object->terms as $term_object) {
-          $terms[] = $term_object->name;
+          // Include term if it is a higher relevancy than the minimum we set.
+          if ($term_object->relevance >= $relevancy_min) {
+            $terms[] = $term_object->name;
+          }
         }
       }
     }
@@ -71,6 +91,82 @@ function autotag_calais_field_form($instance, &$form_state) {
     $form['enable_calais']['#attributes'] = array('disabled' => 'disabled');
     $form['enable_calais']['#description'] = '<strong>OpenCalais must be configured to use with Autotag.</strong>';
   }
+
+  $options = array(
+    'Anniversary' => 'Anniversary',
+    'CalaisDocumentCategory' => 'Calais Document Category',
+    'City' => 'City',
+    'Company' => 'Company',
+    'Continent' => 'Continent',
+    'Country' => 'Country',
+    'Currency' => 'Currency',
+    'EmailAddress' => 'Email Address',
+    'EntertainmentAwardEvent' => 'Entertainment Award Event',
+    'EventFacts' => 'Event Facts',
+    'Facility' => 'Facility',
+    'FaxNumber' => 'Fax Number',
+    'Holiday' => 'Holiday',
+    'IndustryTerm' => 'Industry Term',
+    'MarketIndex' => 'Market Index',
+    'MedicalCondition' => 'Medical Condition',
+    'MedicalTreatment' => 'Medical Treatment',
+    'Movie' => 'Movie',
+    'MusicAlbum' => 'Music Album',
+    'MusicGroup' => 'Music Group',
+    'NaturalFeature' => 'Natural Feature',
+    'OperatingSystem' => 'Operating System',
+    'Organization' => 'Organization',
+    'Person' => 'Person',
+    'PhoneNumber' => 'Phone Number',
+    'Product' => 'Product',
+    'ProgrammingLanguage' => 'Programming Language',
+    'ProvinceOrState' => 'Province Or State',
+    'PublishedMedium' => 'Published Medium',
+    'RadioProgram' => 'Radio Program',
+    'RadioStation' => 'Radio Station',
+    'Region' => 'Region',
+    'SocialTags' => 'Social Tags',
+    'SportsEvent' => 'Sports Event',
+    'SportsGame' => 'Sports Game',
+    'SportsLeague' => 'Sports League',
+    'TVShow' => 'TV Show',
+    'TVStation' => 'TV Station',
+    'Technology' => 'Technology',
+    'URL' => 'URL',
+  );
+
+  $form['calais_categories'] = array(
+    '#title' => 'Calais Categories',
+    '#description' => 'Select which categories should be searched against. By
+      default all categories will be searched.',
+    '#type' => 'select',
+    '#multiple' => TRUE,
+    '#options' => $options,
+    '#default_value' => isset($settings['calais_categories']) ? $settings['calais_categories'] : array(),
+  );
+
+  $options = array(
+    '0' => 'No minimum',
+    '.1' => '10%',
+    '.2' => '20%',
+    '.3' => '30%',
+    '.4' => '40%',
+    '.5' => '50%',
+    '.6' => '60%',
+    '.7' => '70%',
+    '.8' => '80%',
+    '.9' => '90%',
+    '1.0' => '100%',
+  );
+
+  $form['calais_relevancy'] = array(
+    '#title' => 'Calais Relevancy Threshold',
+    '#description' => 'Choose the relevancy threshold that must be reached to
+      fetch a term from OpenCalais.',
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => isset($settings['calais_relevancy']) ? $settings['calais_relevancy'] : array(),
+  );
 
   return $form;
 }

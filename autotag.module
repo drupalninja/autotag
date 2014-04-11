@@ -30,15 +30,41 @@ function autotag_menu() {
  *   Name of autotag enabled field.
  * @param string $bundle
  *   Entity bundle.
- *
- * @return string
- *   Plain text, command delimited list of term names.
  */
 function autotag_fetch_terms($entity_type, $field_name, $bundle) {
-  $autotag_field = field_info_instance($entity_type, $field_name, $bundle);
-
   $search_text = isset($_POST['search_text']) ? $_POST['search_text'] : '';
   $current_terms = isset($_POST['current_terms']) ? explode(', ', $_POST['current_terms']) : NULL;
+
+  // Call helper function
+  $terms = _autotag_fetch_terms($entity_type, $field_name, $bundle, $search_text, $current_terms);
+
+  // Print comma delimited list of unique terms
+  print join(', ', array_unique($terms));
+  drupal_exit();
+}
+
+/**
+ * Autotag fetch terms (helper)
+ *
+ * This will look for terms in the search text and return that list via ajax
+ * to the autotag enabled field when the 'Autotag' button is pressed.
+ *
+ * @param string $entity_type
+ *   Entity type.
+ * @param string $field_name
+ *   Name of autotag enabled field.
+ * @param string $bundle
+ *   Entity bundle.
+ * @param string $search_text
+ *   Text to be searched.
+ * @param array $current_terms
+ *   List of existing terms to be merged with the list returned.
+ *
+ * @return array
+ *   An array of terms is returned.
+ */
+function _autotag_fetch_terms($entity_type, $field_name, $bundle, $search_text, $current_terms = array()) {
+  $autotag_field = field_info_instance($entity_type, $field_name, $bundle);
 
   $terms = array();
 
@@ -52,9 +78,8 @@ function autotag_fetch_terms($entity_type, $field_name, $bundle) {
     $terms = array_merge($current_terms, $terms);
   }
 
-  // Print comma delimited list of unique terms
-  print join(', ', array_unique($terms));
-  drupal_exit();
+  // Return array of terms
+  return $terms;
 }
 
 /**
