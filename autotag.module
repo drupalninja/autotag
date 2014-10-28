@@ -113,8 +113,7 @@ function autotag_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
   $instance = $form['#instance'];
 
   // Add the auto-tag settings form to term reference widgets (autocomplete only).
-  // Currently only the 'node' entity type is supported.
-  if ($instance['entity_type'] == 'node' AND $instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
+  if ($instance['widget']['module'] == 'taxonomy' AND $instance['widget']['type'] == 'taxonomy_autocomplete') {
     if (!empty($form['instance']['widget']['settings'])) {
       $form['instance']['widget']['settings'] += autotag_field_form($instance, $form_state);
     }
@@ -172,6 +171,32 @@ function autotag_field_form($instance, &$form_state) {
     '#type' => 'checkboxes',
     '#options' => $options,
     '#default_value' => isset($settings['vocabularies']) ? $settings['vocabularies'] : array(),
+    '#states' => array(
+      'visible' => array(
+        ':input[name*="enable_autotag"]' => array(
+          'checked' => TRUE,
+        ),
+      ),
+    ),
+  );
+
+  $options = array();
+  $fields = field_info_instances($instance['entity_type'], $instance['bundle']);
+
+  foreach ($fields as $field) {
+    // Only text fields are supported as the source field.
+    if ($field['widget']['module'] == 'text') {
+      $options[$field['field_name']] = $field['label'];
+    }
+  }
+
+  $form['autotag']['source_field'] = array(
+    '#title' => 'Autotag Source Field',
+    '#description' => 'Select the field to suse to search for terms.',
+    '#required' => TRUE,
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => isset($settings['source_field']) ? $settings['source_field'] : '',
   );
 
   return $form;
@@ -187,12 +212,16 @@ function autotag_field_widget_form_alter(&$element, &$form_state, $context) {
     if (isset($context['instance']['widget']['settings']['autotag']['enable_autotag'])
       AND $context['instance']['widget']['settings']['autotag']['enable_autotag'] == 1) {
 
+      // If no source field set, assume body field.
+      $source_field = !empty($context['instance']['widget']['settings']['autotag']['source_field']) ? $context['instance']['widget']['settings']['autotag']['source_field'] : 'body';
+
       // We need to pass the field settings via ajax to a handler that will
       // fetch terms for the search text passed in.
       $settings = array(
         'entity_type' => $element['#entity_type'],
         'field_name' => $context['field']['field_name'],
         'bundle' => $element['#bundle'],
+        'source_field' => str_replace('_', '-', $source_field),
       );
 
       drupal_add_js(array('autotag' => $settings), 'setting');

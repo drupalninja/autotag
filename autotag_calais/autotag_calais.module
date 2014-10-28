@@ -42,7 +42,7 @@ function autotag_calais_autotag_fetch_terms($field_instance, $search_text) {
       }
     }
 
-    return $terms;
+    return array_unique(array_filter($terms));
   }
 }
 
@@ -85,6 +85,13 @@ function autotag_calais_field_form($instance, &$form_state) {
     '#description' => 'Add OpenCalais auto-tagging integration to this field.',
     '#type' => 'checkbox',
     '#default_value' => isset($settings['enable_calais']) ? $settings['enable_calais'] : NULL,
+    '#states' => array(
+      'visible' => array(
+        ':input[name*="enable_autotag"]' => array(
+          'checked' => TRUE,
+        ),
+      ),
+    ),
   );
 
   if (function_exists('is_opencalais_api_key_set') AND !is_opencalais_api_key_set()) {
@@ -137,12 +144,18 @@ function autotag_calais_field_form($instance, &$form_state) {
 
   $form['calais_categories'] = array(
     '#title' => 'Calais Categories',
-    '#description' => 'Select which categories should be searched against. By
-      default all categories will be searched.',
+    '#description' => 'Select which categories should be searched against. By default all categories will be searched.',
     '#type' => 'select',
     '#multiple' => TRUE,
     '#options' => $options,
     '#default_value' => isset($settings['calais_categories']) ? $settings['calais_categories'] : array(),
+    '#states' => array(
+      'visible' => array(
+        ':input[name*="enable_calais"]' => array(
+          'checked' => TRUE,
+        ),
+      ),
+    ),
   );
 
   $options = array(
@@ -161,11 +174,17 @@ function autotag_calais_field_form($instance, &$form_state) {
 
   $form['calais_relevancy'] = array(
     '#title' => 'Calais Relevancy Threshold',
-    '#description' => 'Choose the relevancy threshold that must be reached to
-      fetch a term from OpenCalais.',
+    '#description' => 'Choose the relevancy threshold that must be reached to fetch a term from OpenCalais.',
     '#type' => 'select',
     '#options' => $options,
     '#default_value' => isset($settings['calais_relevancy']) ? $settings['calais_relevancy'] : array(),
+    '#states' => array(
+      'visible' => array(
+        ':input[name*="enable_calais"]' => array(
+          'checked' => TRUE,
+        ),
+      ),
+    ),
   );
 
   return $form;
